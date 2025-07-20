@@ -110,6 +110,9 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
 
   // Admin functions for testing bet lifecycle
   const advanceBetStatus = () => {
+    console.log("Advance button clicked, current bet status:", bet.status);
+    console.log("Current participants:", participants.length);
+    
     try {
       let newStatus = bet.status;
       switch (bet.status) {
@@ -117,6 +120,7 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
           if (participants.length >= 2) {
             newStatus = 'locked';
           } else {
+            console.log("Not enough participants to advance");
             toast({
               title: "Need more participants",
               description: "At least 2 participants needed to lock bet.",
@@ -124,6 +128,9 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
             });
             return;
           }
+          break;
+        case 'pending':
+          newStatus = 'locked';
           break;
         case 'locked':
           newStatus = 'awaiting_proof';
@@ -134,24 +141,28 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
         case 'voting':
           // Randomly pick a winner for demo
           const winningSide = Math.random() > 0.5 ? 'A' : 'B';
+          console.log("Resolving bet with winner:", winningSide);
           betStore.resolveBet(bet.id, winningSide);
           toast({
             title: "Bet resolved!",
             description: `${winningSide === 'A' ? bet.sideA : bet.sideB} wins! Payouts distributed.`,
           });
-          navigate(`/bet/${bet.id}`, { replace: true });
+          window.location.reload(); // Force refresh to see changes
           return;
         default:
+          console.log("Cannot advance from status:", bet.status);
           return;
       }
       
+      console.log("Updating bet status to:", newStatus);
       betStore.updateBetStatus(bet.id, newStatus);
       toast({
         title: "Status updated!",
         description: `Bet advanced to ${newStatus}`,
       });
-      navigate(`/bet/${bet.id}`, { replace: true });
+      window.location.reload(); // Force refresh to see changes
     } catch (error) {
+      console.error("Error advancing bet:", error);
       toast({
         title: "Error",
         description: "Failed to update bet status.",
