@@ -3,13 +3,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { AuthCard } from "@/components/AuthCard";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
-
-interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  avatarUrl?: string;
-}
+import { betStore, type User } from "@/lib/betStore";
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -20,15 +14,22 @@ const Index = () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Mock successful login
-    const mockUser: User = {
-      id: '1',
-      email,
-      displayName: email.split('@')[0],
-      avatarUrl: undefined
-    };
+    // Find existing user from betStore by email
+    const existingUsers = Array.from((betStore as any).users.values()) as User[];
+    const foundUser = existingUsers.find(u => u.email === email);
     
-    setUser(mockUser);
+    if (foundUser) {
+      // Use existing user from betStore
+      setUser(foundUser);
+    } else {
+      // Create new user if not found (fallback)
+      const newUser = betStore.addUser({
+        email,
+        displayName: email.split('@')[0]
+      });
+      setUser(newUser);
+    }
+    
     setShowAuth(false);
     
     toast({
@@ -41,15 +42,13 @@ const Index = () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Mock successful signup
-    const mockUser: User = {
-      id: '1',
+    // Create new user in betStore
+    const newUser = betStore.addUser({
       email,
-      displayName,
-      avatarUrl: undefined
-    };
+      displayName
+    });
     
-    setUser(mockUser);
+    setUser(newUser);
     setShowAuth(false);
     
     toast({
