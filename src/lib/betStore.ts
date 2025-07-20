@@ -186,40 +186,92 @@ class BetStore {
     );
   }
   
+  // Bet progression methods
+  lockBet(betId: string): void {
+    const bet = this.bets.get(betId);
+    if (bet && bet.status === 'draft' && bet.participants.length >= 2) {
+      bet.status = 'locked';
+      this.bets.set(betId, bet);
+    }
+  }
+
+  submitProof(betId: string, userId: string, proof: string): void {
+    const bet = this.bets.get(betId);
+    if (bet && bet.status === 'awaiting_proof') {
+      // Store proof (in real app, this would be stored separately)
+      bet.status = 'voting';
+      this.bets.set(betId, bet);
+    }
+  }
+
+  voteOnBet(betId: string, userId: string, winningSide: 'A' | 'B'): void {
+    const bet = this.bets.get(betId);
+    if (bet && bet.status === 'voting') {
+      // In real app, store votes separately and count them
+      // For demo, we'll just resolve immediately
+      this.resolveBet(betId, winningSide);
+    }
+  }
+
+  resolveBet(betId: string, winningSide: 'A' | 'B'): void {
+    const bet = this.bets.get(betId);
+    if (!bet || bet.status === 'resolved') return;
+
+    bet.status = 'resolved';
+    this.bets.set(betId, bet);
+
+    // Calculate payouts
+    const winners = bet.participants.filter(p => p.side === winningSide);
+    const losers = bet.participants.filter(p => p.side !== winningSide);
+
+    if (winners.length > 0 && losers.length > 0) {
+      const winningsPerPerson = (bet.stake * losers.length) / winners.length;
+
+      // Add ledger entries
+      winners.forEach(winner => {
+        this.addLedgerEntry({
+          userId: winner.userId,
+          betId: bet.id,
+          amount: winningsPerPerson
+        });
+      });
+
+      losers.forEach(loser => {
+        this.addLedgerEntry({
+          userId: loser.userId,
+          betId: bet.id,
+          amount: -bet.stake
+        });
+      });
+    }
+  }
+
+  // Auto-progress bet based on conditions
+  checkAndProgressBet(betId: string): void {
+    const bet = this.bets.get(betId);
+    if (!bet) return;
+
+    const now = new Date();
+    
+    // Auto-lock if event date has passed and bet has participants
+    if (bet.status === 'draft' && bet.participants.length >= 2 && bet.eventDate <= now) {
+      bet.status = 'locked';
+      this.bets.set(betId, bet);
+    }
+    
+    // Auto-move to awaiting proof if event date has passed
+    if (bet.status === 'locked' && bet.eventDate <= now) {
+      bet.status = 'awaiting_proof';
+      this.bets.set(betId, bet);
+    }
+  }
+
   updateBetStatus(betId: string, status: string): void {
     const bet = this.bets.get(betId);
     if (bet) {
       bet.status = status as any;
       this.bets.set(betId, bet);
     }
-  }
-
-  // Bet resolution
-  resolveBet(betId: string, winnerSide: 'A' | 'B'): boolean {
-    const bet = this.bets.get(betId);
-    if (!bet || bet.status !== 'voting') {
-      return false;
-    }
-
-    bet.status = 'resolved';
-    bet.winnerSide = winnerSide;
-
-    // Create ledger entries
-    bet.participants.forEach(participant => {
-      const isWinner = participant.side === winnerSide;
-      const amount = isWinner ? bet.stake : -bet.stake;
-      
-      this.ledger.push({
-        id: this.generateId(),
-        userId: participant.userId,
-        betId: bet.id,
-        amount,
-        createdAt: new Date()
-      });
-    });
-
-    this.bets.set(betId, bet);
-    return true;
   }
 
   // Ledger methods

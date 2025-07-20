@@ -36,6 +36,12 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
   const bet = betStore.getBet(betId!);
   const group = bet ? betStore.getGroup(bet.groupId) : null;
   const creator = bet ? betStore.getUser(bet.creatorId) : null;
+  
+  // Auto-check bet progression
+  if (bet) {
+    betStore.checkAndProgressBet(bet.id);
+  }
+  
   const participants = bet?.participants.map(p => ({
     ...p,
     user: betStore.getUser(p.userId)
@@ -84,12 +90,22 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
   const handleSubmitProof = () => {
     if (!proofText.trim()) return;
     
-    // For now, just show success message
+    betStore.submitProof(bet.id, currentUser.id, proofText);
     toast({
       title: "Proof submitted!",
       description: "Your proof has been submitted for voting.",
     });
     setProofText("");
+    navigate(`/bet/${bet.id}`, { replace: true });
+  };
+
+  const handleVote = (winningSide: 'A' | 'B') => {
+    betStore.voteOnBet(bet.id, currentUser.id, winningSide);
+    toast({
+      title: "Vote cast!",
+      description: `You voted for ${winningSide === 'A' ? bet.sideA : bet.sideB}`,
+    });
+    navigate(`/bet/${bet.id}`, { replace: true });
   };
 
   // Admin functions for testing bet lifecycle
@@ -439,18 +455,54 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button variant="outline" className="h-auto p-4">
+                    <Button 
+                      variant="outline" 
+                      className="h-auto p-4"
+                      onClick={() => handleVote('A')}
+                    >
                       <div className="text-center">
                         <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
                         <p className="font-semibold">Vote for {bet.sideA}</p>
                       </div>
                     </Button>
-                    <Button variant="outline" className="h-auto p-4">
+                    <Button 
+                      variant="outline" 
+                      className="h-auto p-4"
+                      onClick={() => handleVote('B')}
+                    >
                       <div className="text-center">
                         <XCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
                         <p className="font-semibold">Vote for {bet.sideB}</p>
                       </div>
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Resolved Bet Outcome */}
+            {bet.status === 'resolved' && (
+              <Card className="shadow-card border-green-200 bg-green-50 dark:bg-green-950/20">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                    <Trophy className="h-5 w-5" />
+                    Bet Resolved
+                  </CardTitle>
+                  <CardDescription className="text-green-600 dark:text-green-400">
+                    This bet has been completed and payments have been distributed.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <div className="text-center">
+                      <Trophy className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+                        Bet Complete!
+                      </h3>
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                        Check your balance in the ledger to see your winnings/losses.
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
