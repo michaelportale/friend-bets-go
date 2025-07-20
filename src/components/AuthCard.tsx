@@ -128,6 +128,49 @@ export function AuthCard({ onLogin, onSignUp }: AuthCardProps) {
             }
           </button>
         </div>
+
+        {/* Test Users for Development */}
+        <div className="mt-6 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center mb-3">Quick Test Users (Dev Mode)</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onLogin("alice@test.com", "password")}
+              className="text-xs"
+            >
+              Alice
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onLogin("bob@test.com", "password")}
+              className="text-xs"
+            >
+              Bob
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onLogin("charlie@test.com", "password")}
+              className="text-xs"
+            >
+              Charlie
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onLogin("diana@test.com", "password")}
+              className="text-xs"
+            >
+              Diana
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
