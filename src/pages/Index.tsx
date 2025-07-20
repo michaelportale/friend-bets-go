@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useParams, useLocation } from "react-router-dom";
 import { HeroSection } from "@/components/HeroSection";
 import { AuthCard } from "@/components/AuthCard";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import GroupDetails from "./GroupDetails";
+import BetDetails from "./BetDetails";
 import { useToast } from "@/hooks/use-toast";
 import { betStore, type User } from "@/lib/betStore";
 
@@ -9,6 +12,8 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const { toast } = useToast();
+  const { groupId, betId } = useParams();
+  const location = useLocation();
 
   const handleLogin = async (email: string, password: string) => {
     // Simulate API call
@@ -71,8 +76,14 @@ const Index = () => {
     setShowAuth(true);
   };
 
-  // If user is logged in, show dashboard
+  // If user is logged in, show appropriate page based on route
   if (user) {
+    if (groupId) {
+      return <GroupDetails currentUser={user} onLogout={handleLogout} />;
+    }
+    if (betId) {
+      return <BetDetails currentUser={user} onLogout={handleLogout} />;
+    }
     return <DashboardLayout user={user} onLogout={handleLogout} />;
   }
 

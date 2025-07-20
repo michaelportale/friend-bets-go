@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -323,9 +324,11 @@ export function DashboardLayout({ user, onLogout }: DashboardLayoutProps) {
                                 {group.memberIds.length} members • Code: {group.inviteCode}
                               </p>
                             </div>
-                            <Button variant="ghost" size="sm">
-                              View
-                            </Button>
+                            <Link to={`/group/${group.id}`}>
+                              <Button variant="ghost" size="sm">
+                                View
+                              </Button>
+                            </Link>
                           </div>
                         ))}
                         {groups.length === 0 && (
@@ -365,9 +368,11 @@ export function DashboardLayout({ user, onLogout }: DashboardLayoutProps) {
                             <div className="text-sm text-muted-foreground">
                               <p>Invite Code: <span className="font-mono bg-muted px-2 py-1 rounded">{group.inviteCode}</span></p>
                             </div>
-                            <Button variant="outline" className="w-full">
-                              Manage Group
-                            </Button>
+                            <Link to={`/group/${group.id}`}>
+                              <Button variant="outline" className="w-full">
+                                Manage Group
+                              </Button>
+                            </Link>
                           </div>
                         </CardContent>
                       </Card>
@@ -426,9 +431,11 @@ export function DashboardLayout({ user, onLogout }: DashboardLayoutProps) {
                                   <span>Due: {bet.eventDate.toLocaleDateString()}</span>
                                 </div>
                               </div>
-                              <Button variant="outline" size="sm">
-                                View Details
-                              </Button>
+                              <Link to={`/bet/${bet.id}`}>
+                                <Button variant="outline" size="sm">
+                                  View Details
+                                </Button>
+                              </Link>
                             </div>
                           </CardContent>
                         </Card>
