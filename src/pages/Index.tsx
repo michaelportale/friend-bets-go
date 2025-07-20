@@ -5,6 +5,7 @@ import { AuthCard } from "@/components/AuthCard";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import GroupDetails from "./GroupDetails";
 import BetDetails from "./BetDetails";
+import CreateBetPage from "./CreateBetPage";
 import { useToast } from "@/hooks/use-toast";
 import { betStore, type User } from "@/lib/betStore";
 
@@ -83,6 +84,9 @@ const Index = () => {
     }
     if (betId) {
       return <BetDetails currentUser={user} onLogout={handleLogout} />;
+    }
+    if (location.pathname === '/create-bet') {
+      return <CreateBetPage currentUser={user} onLogout={handleLogout} />;
     }
     return <DashboardLayout user={user} onLogout={handleLogout} />;
   }

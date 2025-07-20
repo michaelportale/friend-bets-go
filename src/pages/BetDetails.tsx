@@ -31,6 +31,7 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
   const { toast } = useToast();
   const [selectedSide, setSelectedSide] = useState<'A' | 'B' | null>(null);
   const [proofText, setProofText] = useState("");
+  const [showAdminControls, setShowAdminControls] = useState(false);
 
   const bet = betStore.getBet(betId!);
   const group = bet ? betStore.getGroup(bet.groupId) : null;
@@ -89,6 +90,71 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
       description: "Your proof has been submitted for voting.",
     });
     setProofText("");
+  };
+
+  // Admin functions for testing bet lifecycle
+  const advanceBetStatus = () => {
+    try {
+      let newStatus = bet.status;
+      switch (bet.status) {
+        case 'draft':
+          if (participants.length >= 2) {
+            newStatus = 'locked';
+          } else {
+            toast({
+              title: "Need more participants",
+              description: "At least 2 participants needed to lock bet.",
+              variant: "destructive",
+            });
+            return;
+          }
+          break;
+        case 'locked':
+          newStatus = 'awaiting_proof';
+          break;
+        case 'awaiting_proof':
+          newStatus = 'voting';
+          break;
+        case 'voting':
+          newStatus = 'resolved';
+          // Add ledger entries for winners/losers
+          const winningSide = Math.random() > 0.5 ? 'A' : 'B';
+          const winners = participants.filter(p => p.side === winningSide);
+          const losers = participants.filter(p => p.side !== winningSide);
+          
+          winners.forEach(winner => {
+            betStore.addLedgerEntry({
+              userId: winner.userId,
+              betId: bet.id,
+              amount: bet.stake * (losers.length / winners.length)
+            });
+          });
+          
+          losers.forEach(loser => {
+            betStore.addLedgerEntry({
+              userId: loser.userId,
+              betId: bet.id,
+              amount: -bet.stake
+            });
+          });
+          break;
+        default:
+          return;
+      }
+      
+      betStore.updateBetStatus(bet.id, newStatus);
+      toast({
+        title: "Status updated!",
+        description: `Bet is now ${newStatus}`,
+      });
+      navigate(`/bet/${bet.id}`, { replace: true });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update bet status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -156,6 +222,70 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Admin Controls for Testing */}
+        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800 animate-fade-in">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">
+              🧪 Testing Controls (Dev Mode)
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAdminControls(!showAdminControls)}
+              className="text-yellow-700 dark:text-yellow-300"
+            >
+              {showAdminControls ? 'Hide' : 'Show'}
+            </Button>
+          </div>
+          
+          {showAdminControls && (
+            <div className="space-y-3">
+              <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                <p><strong>Current Status:</strong> {bet.status}</p>
+                <p><strong>Participants:</strong> {participants.length}</p>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={advanceBetStatus}
+                  disabled={bet.status === 'resolved'}
+                  className="bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700"
+                >
+                  Advance to Next Stage
+                </Button>
+                
+                {bet.status === 'draft' && participants.length === 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Auto-add participants for testing
+                      const availableUsers = group?.memberIds
+                        .filter(id => id !== currentUser.id && !participants.some(p => p.userId === id))
+                        .slice(0, 2) || [];
+                      
+                      if (availableUsers.length >= 2) {
+                        betStore.acceptBet(bet.id, availableUsers[0], 'A');
+                        betStore.acceptBet(bet.id, availableUsers[1], 'B');
+                        navigate(`/bet/${bet.id}`, { replace: true });
+                      }
+                    }}
+                    className="bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700"
+                  >
+                    Add Test Participants
+                  </Button>
+                )}
+              </div>
+              
+              <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                Use these controls to quickly test the bet lifecycle: Draft → Locked → Awaiting Proof → Voting → Resolved
+              </p>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">

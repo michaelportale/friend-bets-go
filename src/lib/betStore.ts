@@ -185,6 +185,14 @@ class BetStore {
       bet.creatorId === userId || bet.participants.some(p => p.userId === userId)
     );
   }
+  
+  updateBetStatus(betId: string, status: string): void {
+    const bet = this.bets.get(betId);
+    if (bet) {
+      bet.status = status as any;
+      this.bets.set(betId, bet);
+    }
+  }
 
   // Bet resolution
   resolveBet(betId: string, winnerSide: 'A' | 'B'): boolean {
