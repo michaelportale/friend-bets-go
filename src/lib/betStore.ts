@@ -215,6 +215,16 @@ class BetStore {
   }
 
   // Ledger methods
+  addLedgerEntry(entry: Omit<LedgerEntry, 'id' | 'createdAt'>): LedgerEntry {
+    const ledgerEntry: LedgerEntry = {
+      ...entry,
+      id: this.generateId(),
+      createdAt: new Date()
+    };
+    this.ledger.push(ledgerEntry);
+    return ledgerEntry;
+  }
+
   getUserBalance(userId: string): number {
     return this.ledger
       .filter(entry => entry.userId === userId)
@@ -229,30 +239,138 @@ class BetStore {
 // Export singleton instance
 export const betStore = new BetStore();
 
-// Initialize with some mock data
+// Initialize with comprehensive mock data for demo
 export function initializeMockData() {
-  // Add some sample users
-  const user1 = betStore.addUser({
-    email: "demo@betit.com",
-    displayName: "Demo User",
+  // Create test users (matching the quick login buttons)
+  const alice = betStore.addUser({
+    email: "alice@test.com",
+    displayName: "Alice",
+  });
+  
+  const bob = betStore.addUser({
+    email: "bob@test.com", 
+    displayName: "Bob",
+  });
+  
+  const charlie = betStore.addUser({
+    email: "charlie@test.com",
+    displayName: "Charlie", 
+  });
+  
+  const diana = betStore.addUser({
+    email: "diana@test.com",
+    displayName: "Diana",
   });
 
-  // Add some sample groups
-  const group1 = betStore.createGroup("College Friends", user1.id);
-  const group2 = betStore.createGroup("Office Squad", user1.id);
+  // Create groups with multiple members
+  const collegeFriends = betStore.createGroup("College Friends", alice.id);
+  betStore.joinGroup(collegeFriends.inviteCode, bob.id);
+  betStore.joinGroup(collegeFriends.inviteCode, charlie.id);
+  
+  const officeSquad = betStore.createGroup("Office Squad", bob.id);
+  betStore.joinGroup(officeSquad.inviteCode, alice.id);
+  betStore.joinGroup(officeSquad.inviteCode, diana.id);
+  
+  const gamingCrew = betStore.createGroup("Gaming Crew", charlie.id);
+  betStore.joinGroup(gamingCrew.inviteCode, alice.id);
+  betStore.joinGroup(gamingCrew.inviteCode, bob.id);
+  betStore.joinGroup(gamingCrew.inviteCode, diana.id);
 
-  // Add some sample bets
-  betStore.createBet({
-    groupId: group1.id,
-    creatorId: user1.id,
+  // Create bets in different states to showcase the full lifecycle
+  
+  // 1. Active bet in voting stage
+  const bet1 = betStore.createBet({
+    groupId: collegeFriends.id,
+    creatorId: alice.id,
     title: "Lakers vs Warriors",
-    description: "Season opener game prediction",
+    description: "Who wins the season opener?",
     sideA: "Lakers",
     sideB: "Warriors",
     stake: 25,
-    eventDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+    eventDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     proofType: "vote"
   });
+  betStore.acceptBet(bet1.id, bob.id, 'B');
+  betStore.acceptBet(bet1.id, charlie.id, 'A');
+  
+  // 2. Locked bet (event happening soon)
+  const bet2 = betStore.createBet({
+    groupId: officeSquad.id,
+    creatorId: bob.id,
+    title: "Super Bowl Winner",
+    description: "Who takes home the championship this year?",
+    sideA: "Chiefs",
+    sideB: "49ers",
+    stake: 50,
+    eventDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+    proofType: "vote"
+  });
+  betStore.acceptBet(bet2.id, alice.id, 'A');
+  betStore.acceptBet(bet2.id, diana.id, 'B');
+  
+  // 3. Draft bet (pending acceptance)
+  const bet3 = betStore.createBet({
+    groupId: gamingCrew.id,
+    creatorId: charlie.id,
+    title: "Elden Ring DLC Release",
+    description: "Will the DLC drop before March?",
+    sideA: "Before March",
+    sideB: "After March",
+    stake: 20,
+    eventDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+    proofType: "vote"
+  });
+  
+  // 4. Resolved bet for ledger history
+  const bet4 = betStore.createBet({
+    groupId: collegeFriends.id,
+    creatorId: alice.id,
+    title: "Bitcoin Price Prediction",
+    description: "Will Bitcoin hit $100k by end of year?",
+    sideA: "Yes",
+    sideB: "No", 
+    stake: 30,
+    eventDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // Past date
+    proofType: "vote"
+  });
+  betStore.acceptBet(bet4.id, bob.id, 'B');
+  betStore.acceptBet(bet4.id, charlie.id, 'A');
+  
+  // Add some ledger entries to show transaction history
+  betStore.addLedgerEntry({
+    userId: alice.id,
+    betId: bet4.id,
+    amount: 30, // Alice won
+  });
+  
+  betStore.addLedgerEntry({
+    userId: bob.id,
+    betId: bet4.id,
+    amount: -30, // Bob lost
+  });
+  
+  betStore.addLedgerEntry({
+    userId: charlie.id,
+    betId: bet4.id,
+    amount: 0, // Charlie tied (for demo)
+  });
 
-  return { user1, group1, group2 };
+  // 5. More variety in bet types
+  const bet5 = betStore.createBet({
+    groupId: officeSquad.id,
+    creatorId: diana.id,
+    title: "Company All-Hands Attendance",
+    description: "Will more than 50 people attend?",
+    sideA: "50+ people",
+    sideB: "Under 50",
+    stake: 15,
+    eventDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    proofType: "vote"
+  });
+  betStore.acceptBet(bet5.id, alice.id, 'A');
+
+  return { alice, bob, charlie, diana, collegeFriends, officeSquad, gamingCrew };
 }
+
+// Auto-initialize mock data for demo
+initializeMockData();
