@@ -132,28 +132,15 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
           newStatus = 'voting';
           break;
         case 'voting':
-          newStatus = 'resolved';
-          // Add ledger entries for winners/losers
+          // Randomly pick a winner for demo
           const winningSide = Math.random() > 0.5 ? 'A' : 'B';
-          const winners = participants.filter(p => p.side === winningSide);
-          const losers = participants.filter(p => p.side !== winningSide);
-          
-          winners.forEach(winner => {
-            betStore.addLedgerEntry({
-              userId: winner.userId,
-              betId: bet.id,
-              amount: bet.stake * (losers.length / winners.length)
-            });
+          betStore.resolveBet(bet.id, winningSide);
+          toast({
+            title: "Bet resolved!",
+            description: `${winningSide === 'A' ? bet.sideA : bet.sideB} wins! Payouts distributed.`,
           });
-          
-          losers.forEach(loser => {
-            betStore.addLedgerEntry({
-              userId: loser.userId,
-              betId: bet.id,
-              amount: -bet.stake
-            });
-          });
-          break;
+          navigate(`/bet/${bet.id}`, { replace: true });
+          return;
         default:
           return;
       }
@@ -161,13 +148,30 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
       betStore.updateBetStatus(bet.id, newStatus);
       toast({
         title: "Status updated!",
-        description: `Bet is now ${newStatus}`,
+        description: `Bet advanced to ${newStatus}`,
       });
       navigate(`/bet/${bet.id}`, { replace: true });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update bet status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const addTestParticipants = () => {
+    const success = betStore.addTestParticipants(bet.id);
+    if (success) {
+      toast({
+        title: "Test participants added!",
+        description: "Users have been added to both sides of the bet.",
+      });
+      navigate(`/bet/${bet.id}`, { replace: true });
+    } else {
+      toast({
+        title: "Cannot add participants",
+        description: "Not enough available users in the group.",
         variant: "destructive",
       });
     }
@@ -272,25 +276,33 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
                   Advance to Next Stage
                 </Button>
                 
-                {bet.status === 'draft' && participants.length === 0 && (
+                {bet.status === 'draft' && participants.length < 2 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={addTestParticipants}
+                    className="bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700"
+                  >
+                    Add Test Participants
+                  </Button>
+                )}
+                
+                {bet.status === 'voting' && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      // Auto-add participants for testing
-                      const availableUsers = group?.memberIds
-                        .filter(id => id !== currentUser.id && !participants.some(p => p.userId === id))
-                        .slice(0, 2) || [];
-                      
-                      if (availableUsers.length >= 2) {
-                        betStore.acceptBet(bet.id, availableUsers[0], 'A');
-                        betStore.acceptBet(bet.id, availableUsers[1], 'B');
-                        navigate(`/bet/${bet.id}`, { replace: true });
-                      }
+                      const winningSide = Math.random() > 0.5 ? 'A' : 'B';
+                      betStore.resolveBet(bet.id, winningSide);
+                      toast({
+                        title: "Bet resolved!",
+                        description: `${winningSide === 'A' ? bet.sideA : bet.sideB} wins! Payouts distributed.`,
+                      });
+                      navigate(`/bet/${bet.id}`, { replace: true });
                     }}
-                    className="bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700"
+                    className="bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700"
                   >
-                    Add Test Participants
+                    Auto-Resolve (Random Winner)
                   </Button>
                 )}
               </div>
@@ -496,8 +508,8 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
                   <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
                     <div className="text-center">
                       <Trophy className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
-                        Bet Complete!
+                     <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+                        {bet.winnerSide === 'A' ? bet.sideA : bet.sideB} Wins!
                       </h3>
                       <p className="text-sm text-green-700 dark:text-green-300">
                         Check your balance in the ledger to see your winnings/losses.

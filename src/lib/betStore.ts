@@ -218,6 +218,7 @@ class BetStore {
     if (!bet || bet.status === 'resolved') return;
 
     bet.status = 'resolved';
+    bet.winnerSide = winningSide;
     this.bets.set(betId, bet);
 
     // Calculate payouts
@@ -244,6 +245,30 @@ class BetStore {
         });
       });
     }
+  }
+
+  // Dev helper method to add test participants
+  addTestParticipants(betId: string): boolean {
+    const bet = this.bets.get(betId);
+    if (!bet || bet.status !== 'draft') return false;
+
+    const group = this.groups.get(bet.groupId);
+    if (!group) return false;
+
+    const availableUsers = group.memberIds.filter(id => 
+      id !== bet.creatorId && !bet.participants.some(p => p.userId === id)
+    );
+
+    if (availableUsers.length >= 2) {
+      this.acceptBet(bet.id, availableUsers[0], 'A');
+      this.acceptBet(bet.id, availableUsers[1], 'B');
+      return true;
+    } else if (availableUsers.length === 1) {
+      this.acceptBet(bet.id, availableUsers[0], 'A');
+      return true;
+    }
+    
+    return false;
   }
 
   // Auto-progress bet based on conditions
