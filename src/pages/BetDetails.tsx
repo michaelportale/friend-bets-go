@@ -147,7 +147,8 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
             title: "Bet resolved!",
             description: `${winningSide === 'A' ? bet.sideA : bet.sideB} wins! Payouts distributed.`,
           });
-          window.location.reload(); // Force refresh to see changes
+          // Trigger a re-render by navigating to the same route
+          navigate(`/bet/${bet.id}`, { replace: true });
           return;
         default:
           console.log("Cannot advance from status:", bet.status);
@@ -160,7 +161,8 @@ export default function BetDetails({ currentUser, onLogout }: BetDetailsProps) {
         title: "Status updated!",
         description: `Bet advanced to ${newStatus}`,
       });
-      window.location.reload(); // Force refresh to see changes
+      // Trigger a re-render by navigating to the same route
+      navigate(`/bet/${bet.id}`, { replace: true });
     } catch (error) {
       console.error("Error advancing bet:", error);
       toast({
